@@ -46,9 +46,8 @@ __pycache__/
 # Unit test
 .pytest_cache/
 
-# Ignore Gramex 0.x artefacts and log files
+# Ignore artefacts and log files
 .cache/
-.gramex-compiled/
 *.xhtml
 *.log
 
