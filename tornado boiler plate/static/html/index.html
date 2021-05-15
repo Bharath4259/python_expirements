@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ static_url('node_modules/bootstrap/dist/css/bootstrap.css')}}">
+  <link rel="stylesheet" href="{{ static_url('css/common.css')}}">
+  <link rel="icon" href="{{ static_url('img/favicon.png')}}" type="image/gif">
+
+
+  <title>Boiler-Plate</title>
+
+</head>
+
+<body class="bgc-grey">
+  <div class="loader pointer-events-none"></div>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bgc-blue py-1">
+    <ul class="nav navbar-nav navbar-left">
+      <li class="mr-2">
+        <img src="{{ static_url('img/logo.png')}}" height="35px" alt="logo">
+      </li>
+      <li>
+        <div class="v-line mr-1"></div>
+      </li>
+      <li>
+        <a class="p-0 navbar-brand container-fluid text-center font-weight-bold font-brand" href="/">
+          Boiler-Plate
+        </a>
+      </li>
+    </ul>
+
+    <ul class="nav navbar-nav mx-auto">
+      <li>
+
+      </li>
+    </ul>
+
+
+    <ul class="nav navbar-nav justify-content-end ml-auto">
+
+      <li>
+        <span class="badge badge-info">{{handler.get_win_id()}}</span>
+        <!-- <a href="/logout/" class="btn btn-outline-light mr-1" role="button" aria-pressed="true">Logout</a> -->
+        {% set flag = handler.get_auth_flag() %}
+        <!-- {% if flag == 'False' %} {{'d-none'}} {% end %} -->
+        <a href="/logout/" class="{{flag}}">
+          <img class="my-auto" width="20" height="20" src="../static/img/logout.svg" title="Logout" alt="icon-logout">
+        </a>
+
+      </li>
+    </ul>
+  </nav>
+
+
+  <div id="page_placeholder" class="container-fluid p-0">
+
+    <form action="/upload" method="POST">
+      <input type="file" id="myFile" name="filename">
+      <input type="submit">
+    </form>
+
+    {% set tab = (handler.request.arguments).get("tab",[b"home"])[0].decode('utf-8') %}
+    {% set page_path =  "{}.html".format(tab) %}
+    {% module Template(page_path) %}
+
+  </div>
+
+
+
+
+  <script>
+    const win_id = "{{handler.get_win_id()}}"
+    const tab = "{{tab}}"
+  </script>
+
+  <!-- Matomo -->
+  <script type="text/javascript">
+    var _paq = window._paq = window._paq || [];
+    /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+    _paq.push(['trackPageView']);
+    _paq.push(['enableLinkTracking']);
+    (function () {
+      var u = "//34.93.48.158/usage/";
+      _paq.push(['setTrackerUrl', u + 'matomo.php']);
+      _paq.push(['setSiteId', "{{handler.get_meta_var('matomo_id')}}"]);
+      _paq.push(['setUserId', '{{handler.get_win_id()}}'])
+      var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+      g.type = 'text/javascript'; g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+    })();
+  </script>
+  <!-- End Matomo Code -->
+
+  <script src="{{ static_url('node_modules/jquery/dist/jquery.min.js')}}"></script>
+  <script src="{{ static_url('node_modules/popper.js/dist/umd/popper.min.js')}}"></script>
+  <script src="{{ static_url('node_modules/bootstrap/dist/js/bootstrap.min.js')}}"></script>
+  <script src="{{ static_url('node_modules/lodash/lodash.js')}}"></script>
+  <script src="{{ static_url('node_modules/g1/dist/g1.min.js')}}"></script>
+  <script src="{{ static_url('node_modules/d3/dist/d3.min.js')}}"></script>
+  <!-- node mods end here -->
+  <!-- components -->
+  <script src="{{ static_url('js/component/barchart.js')}}"></script>
+  <!-- controller files -->
+  <script src="{{ static_url('js/index.js')}}"></script>
+  <!-- templates -->
+  <script type="text/html" src="{{ static_url('template/table.html')}}" id="table_template"></script>
+
+
+</body>
+
+</html>
