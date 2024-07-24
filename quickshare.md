@@ -6,6 +6,7 @@ pip install langchain google-cloud-aiplatform weaviate-client PyMuPDF
 
 Python Program:
 
+```
 import os
 import fitz  # PyMuPDF
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -83,3 +84,4 @@ qa_system = create_qa_system(pdf_paths)
 question = "What is the RDQ Operational Data Strategy?"
 answer = qa_system.ask(question)
 print(f"Q: {question}\nA: {answer}")
+```
