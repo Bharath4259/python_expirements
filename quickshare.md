@@ -10,7 +10,7 @@ Python Program:
 import os
 import fitz  # PyMuPDF
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_google_vertexai import VertexAIEmbeddings
+from langchain_google_vertexai import VertexAIEmbeddings, GoogleEmbeddingModelType
 from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import Chroma
 import chromadb
@@ -47,7 +47,8 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 # vertex_ai_embeddings = VertexAIEmbeddings(api_key=os.getenv("GOOGLE_CLOUD_API_KEY"))
 
 # Initialize Vertex AI Embeddings
-vertex_ai_embeddings = VertexAIEmbeddings(api_key=api_key)
+vertex_ai_embeddings = VertexAIEmbeddings(model=GoogleEmbeddingModelType.BERT, api_key=api_key)
+
 
 
 # Initialize ChromaDB client
