@@ -10,12 +10,13 @@ Python Program:
 import os
 import fitz  # PyMuPDF
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import VertexAIEmbeddings
+from langchain_google_vertexai import VertexAIEmbeddings
 from langchain.chains import QAMaker
-from weaviate import Client
+import chromadb
+from chromadb.config import Settings
 
-# Set up environment variables for GCP
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "path/to/your/google-cloud-credentials.json"
+# Set up Google Cloud Vertex AI API key
+os.environ["GOOGLE_CLOUD_API_KEY"] = "your-google-cloud-api-key"
 
 # Function to extract text from PDF
 def extract_text_from_pdf(pdf_path):
@@ -29,10 +30,10 @@ def extract_text_from_pdf(pdf_path):
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
 # Initialize Vertex AI Embeddings
-vertex_ai_embeddings = VertexAIEmbeddings()
+vertex_ai_embeddings = VertexAIEmbeddings(api_key=os.getenv("GOOGLE_CLOUD_API_KEY"))
 
-# Initialize Weaviate client
-weaviate_client = Client("http://localhost:8080")  # Replace with your Weaviate endpoint
+# Initialize ChromaDB client
+chroma_client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma_db"))
 
 # Function to process a PDF document and store embeddings
 def process_pdf_and_store_embeddings(pdf_path):
@@ -45,14 +46,15 @@ def process_pdf_and_store_embeddings(pdf_path):
     # Create embeddings for each chunk
     embeddings = [vertex_ai_embeddings.embed(chunk) for chunk in chunks]
     
-    # Store embeddings in Weaviate
-    for i, embedding in enumerate(embeddings):
-        weaviate_client.data_object.create(
-            data_object={
-                "text": chunks[i],
-                "embedding": embedding
-            },
-            class_name="PDFText"
+    # Store embeddings in ChromaDB
+    collection = chroma_client.get_or_create_collection(name="pdf_texts")
+    for chunk, embedding in zip(chunks, embeddings):
+        collection.add(
+            documents=[{
+                "id": str(hash(chunk)),
+                "embedding": embedding,
+                "metadata": {"text": chunk}
+            }]
         )
 
 # Function to create a Q&A system
@@ -62,8 +64,9 @@ def create_qa_system(pdf_paths):
         process_pdf_and_store_embeddings(pdf_path)
     
     # Initialize QAMaker
+    collection = chroma_client.get_collection(name="pdf_texts")
     qa_maker = QAMaker(
-        retriever=weaviate_client.query,
+        retriever=collection.as_retriever(),
         model="your-model-name",  # Specify your model name
         embedding_model=vertex_ai_embeddings
     )
@@ -84,4 +87,5 @@ qa_system = create_qa_system(pdf_paths)
 question = "What is the RDQ Operational Data Strategy?"
 answer = qa_system.ask(question)
 print(f"Q: {question}\nA: {answer}")
+
 ```
