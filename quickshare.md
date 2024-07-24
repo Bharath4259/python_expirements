@@ -11,7 +11,8 @@ import os
 import fitz  # PyMuPDF
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_vertexai import VertexAIEmbeddings
-from langchain.chains import QAMaker
+from langchain.chains import ConversationalRetrievalChain
+from langchain.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
 
@@ -63,15 +64,18 @@ def create_qa_system(pdf_paths):
     for pdf_path in pdf_paths:
         process_pdf_and_store_embeddings(pdf_path)
     
-    # Initialize QAMaker
+    # Initialize Chroma VectorStore
     collection = chroma_client.get_collection(name="pdf_texts")
-    qa_maker = QAMaker(
-        retriever=collection.as_retriever(),
-        model="your-model-name",  # Specify your model name
-        embedding_model=vertex_ai_embeddings
+    chroma_store = Chroma(client=chroma_client, collection=collection)
+    
+    # Initialize ConversationalRetrievalChain
+    qa_chain = ConversationalRetrievalChain(
+        retriever=chroma_store.as_retriever(),
+        llm="your-llm-model",  # Replace with the appropriate language model
+        verbose=True
     )
     
-    return qa_maker
+    return qa_chain
 
 # List of PDF documents
 pdf_paths = [
