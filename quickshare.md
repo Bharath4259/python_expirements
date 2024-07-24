@@ -16,8 +16,21 @@ from langchain.vectorstores import Chroma
 import chromadb
 from chromadb.config import Settings
 
+import vertexai
+
+
+# Set up Google Cloud Vertex AI API key and project details
+api_key = "your-google-cloud-api-key"
+project_id = "your-google-cloud-project-id"
+location = "your-google-cloud-location"  # e.g., "us-central1"
+
 # Set up Google Cloud Vertex AI API key
 os.environ["GOOGLE_CLOUD_API_KEY"] = "your-google-cloud-api-key"
+
+
+# Initialize Vertex AI
+vertexai.init(project=project_id, location=location, credentials=api_key)
+
 
 # Function to extract text from PDF
 def extract_text_from_pdf(pdf_path):
@@ -31,7 +44,11 @@ def extract_text_from_pdf(pdf_path):
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
 
 # Initialize Vertex AI Embeddings
-vertex_ai_embeddings = VertexAIEmbeddings(api_key=os.getenv("GOOGLE_CLOUD_API_KEY"))
+# vertex_ai_embeddings = VertexAIEmbeddings(api_key=os.getenv("GOOGLE_CLOUD_API_KEY"))
+
+# Initialize Vertex AI Embeddings
+vertex_ai_embeddings = VertexAIEmbeddings(api_key=api_key)
+
 
 # Initialize ChromaDB client
 chroma_client = chromadb.Client(Settings(chroma_db_impl="duckdb+parquet", persist_directory="./chroma_db"))
