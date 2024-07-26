@@ -162,4 +162,102 @@ vector_store = FAISS.from_texts(preprocessed_texts, custom_embeddings)
 for i, embedding in enumerate(embeddings):
     print(f'Embedding for {pdf_paths[i]}: {embedding}')
 
+# -----------------------------------------------------------------------------------------------------
+
+
+import PyPDF2
+import re
+import numpy as np
+from google.oauth2 import service_account
+from google.cloud import aiplatform
+from google.cloud import aiplatform_v1
+from google.cloud.aiplatform_v1.types import PredictRequest
+
+# Authentication
+service_account_path = 'path_to_your_service_account_key.json'
+credentials = service_account.Credentials.from_service_account_file(service_account_path)
+aiplatform.init(credentials=credentials)
+
+# Extract text from PDFs
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfFileReader(file)
+        text = ''
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
+            text += page.extract_text()
+    return text
+
+# Preprocess text
+def preprocess_text(text):
+    text = re.sub(r'\W+', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip().lower()
+    return text
+
+pdf_paths = ['file1.pdf', 'file2.pdf', 'file3.pdf']
+texts = [extract_text_from_pdf(path) for path in pdf_paths]
+preprocessed_texts = [preprocess_text(text) for text in texts]
+
+# Function to generate embeddings using Vertex AI
+def create_embeddings(texts, project_id, model_name, location, credentials):
+    client = aiplatform_v1.PredictionServiceClient(credentials=credentials)
+    endpoint = client.endpoint_path(project=project_id, location=location, endpoint=model_name)
+
+    embeddings = []
+    for text in texts:
+        instances = [{'content': text}]
+        request = PredictRequest(endpoint=endpoint, instances=instances)
+        response = client.predict(request=request)
+        embeddings.extend([pred for pred in response.predictions])
+    
+    return np.array(embeddings)
+
+# Generate embeddings
+embeddings = create_embeddings(preprocessed_texts, 'your_project_id', 'your_model_name', 'us-central1', credentials)
+
+# Function to update embeddings to Google Vector Search
+from google.cloud import aiplatform_v1beta1 as aiplatform
+from google.protobuf import json_format
+from google.protobuf.struct_pb2 import Value
+
+def update_embeddings_to_vector_search(
+    project_id, location, index_id, embeddings, doc_ids
+):
+    # Initialize the Vertex AI Matching Engine client
+    client = aiplatform.MatchServiceClient()
+
+    # Define the parent path for the index
+    index_name = client.index_path(project_id, location, index_id)
+
+    # Create a list of index items (each containing an embedding and the corresponding doc ID)
+    index_items = [
+        aiplatform.IndexItem(
+            id=doc_id,
+            embedding=embedding.tolist(),  # Convert numpy array to list
+            # Optionally, add any additional metadata
+            metadata=json_format.ParseDict({"doc_id": doc_id}, Value()),
+        )
+        for doc_id, embedding in zip(doc_ids, embeddings)
+    ]
+
+    # Define the request
+    request = aiplatform.UpsertIndexItemsRequest(
+        index=index_name,
+        index_items=index_items,
+    )
+
+    # Execute the request
+    response = client.upsert_index_items(request=request)
+    print(f"Upserted {len(index_items)} items into index {index_id}.")
+
+# Example usage
+project_id = 'your_project_id'
+location = 'us-central1'
+index_id = 'your_index_id'
+doc_ids = [f'doc{i}' for i in range(len(preprocessed_texts))]
+
+update_embeddings_to_vector_search(project_id, location, index_id, embeddings, doc_ids)
+
+
+
 
