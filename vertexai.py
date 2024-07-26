@@ -113,3 +113,53 @@ vector_store = FAISS.from_texts(preprocessed_texts, embeddings, vertex_model)
 for i, embedding in enumerate(embeddings):
     print(f'Embedding for {pdf_paths[i]}: {embedding}')
 
+
+# -------------------------------------------------------------------------------------
+
+from google.cloud.aiplatform_v1.types import PredictRequest
+import numpy as np
+from langchain.vectorstores import FAISS
+from langchain.embeddings import Embeddings
+
+# ... common code ...
+
+# Define a function to generate embeddings using Vertex AI
+def create_embeddings(texts, project_id, model_name, location, credentials):
+    client = aiplatform_v1.PredictionServiceClient(credentials=credentials)
+    endpoint = client.endpoint_path(project=project_id, location=location, endpoint=model_name)
+
+    embeddings = []
+    for text in texts:
+        instances = [{'content': text}]
+        request = PredictRequest(endpoint=endpoint, instances=instances)
+        response = client.predict(request=request)
+        embeddings.extend([pred for pred in response.predictions])
+    
+    return embeddings
+
+# Generate embeddings
+embeddings = create_embeddings(preprocessed_texts, 'your_project_id', 'your_model_name', 'us-central1', credentials)
+
+# Convert embeddings to numpy array for better handling
+embeddings = np.array(embeddings)
+
+# Define a custom embeddings class
+class CustomEmbeddings(Embeddings):
+    def __init__(self, embeddings):
+        self.embeddings = embeddings
+
+    def embed_text(self, text):
+        index = preprocessed_texts.index(text)
+        return self.embeddings[index]
+
+# Initialize the custom embeddings class
+custom_embeddings = CustomEmbeddings(embeddings)
+
+# Store embeddings in FAISS vector store for efficient retrieval
+vector_store = FAISS.from_texts(preprocessed_texts, custom_embeddings)
+
+# Output the embeddings
+for i, embedding in enumerate(embeddings):
+    print(f'Embedding for {pdf_paths[i]}: {embedding}')
+
+
