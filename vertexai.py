@@ -55,3 +55,61 @@ embeddings = np.array(embeddings)
 # Output the embeddings
 for i, embedding in enumerate(embeddings):
     print(f'Embedding for {pdf_paths[i]}: {embedding}')
+
+
+# -----------------------------------------------------------------------------
+
+
+import PyPDF2
+import re
+from google.oauth2 import service_account
+from google.cloud import aiplatform
+from langchain.embeddings import VertexAIEmbeddings
+from langchain.vectorstores import FAISS
+
+# Authenticate
+service_account_path = 'path_to_your_service_account_key.json'
+credentials = service_account.Credentials.from_service_account_file(service_account_path)
+aiplatform.init(credentials=credentials)
+
+# Extract text from PDFs
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfFileReader(file)
+        text = ''
+        for page_num in range(reader.numPages):
+            page = reader.getPage(page_num)
+            text += page.extract_text()
+    return text
+
+# Preprocess text
+def preprocess_text(text):
+    text = re.sub(r'\W+', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip().lower()
+    return text
+
+pdf_paths = ['file1.pdf', 'file2.pdf', 'file3.pdf']
+texts = [extract_text_from_pdf(path) for path in pdf_paths]
+preprocessed_texts = [preprocess_text(text) for text in texts]
+
+# Define your model and initialize embeddings
+vertex_model = VertexAIEmbeddings(
+    model_name='your_model_name',
+    project='your_project_id',
+    location='us-central1',
+    credentials=credentials
+)
+
+# Generate embeddings
+def create_embeddings(texts, embeddings_model):
+    return [embeddings_model.embed_text(text) for text in texts]
+
+embeddings = create_embeddings(preprocessed_texts, vertex_model)
+
+# Store embeddings in FAISS vector store for efficient retrieval
+vector_store = FAISS.from_texts(preprocessed_texts, embeddings, vertex_model)
+
+# Output the embeddings
+for i, embedding in enumerate(embeddings):
+    print(f'Embedding for {pdf_paths[i]}: {embedding}')
+
