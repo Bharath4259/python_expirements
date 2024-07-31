@@ -258,6 +258,53 @@ doc_ids = [f'doc{i}' for i in range(len(preprocessed_texts))]
 
 update_embeddings_to_vector_search(project_id, location, index_id, embeddings, doc_ids)
 
+# ---------------------------------------------------------------------------------------------------------------
+
+import os
+import pandas as pd
+from google.cloud import aiplatform
+
+def upload_embeddings_to_vertex_ai(embeddings, metadata, project_id, location, index_endpoint_name):
+  """Uploads embeddings and metadata to Vertex AI Vector Search.
+
+  Args:
+    embeddings: A list of numpy arrays, each representing an embedding.
+    metadata: A list of dictionaries, each containing metadata for an embedding.
+    project_id: Your Google Cloud project ID.
+    location: The location of your Vertex AI instance.
+    index_endpoint_name: The name of your Vertex AI Vector Search index endpoint.
+  """
+
+  # Create a client
+  aiplatform.init(project=project_id, location=location)
+
+  # Prepare data for upload
+  data = []
+  for embedding, meta in zip(embeddings, metadata):
+    data.append({
+      "embeddings": embedding.tolist(),
+      "metadata": meta
+    })
+
+  # Create a pandas DataFrame from the data
+  df = pd.DataFrame(data)
+
+  # Upload data to Vertex AI Vector Search
+  index_endpoint = aiplatform.IndexEndpoint(index_endpoint_name)
+  index_endpoint.upload_data(df)
+
+# Example usage:
+embeddings = [embedding1, embedding2, ...]  # Replace with your embeddings
+metadata = [{"id": 1, "title": "Document 1"}, {"id": 2, "title": "Document 2"}, ...]  # Replace with your metadata
+project_id = "your-project-id"
+location = "us-central1"
+index_endpoint_name = "your-index-endpoint-name"
+
+upload_embeddings_to_vertex_ai(embeddings, metadata, project_id, location, index_endpoint_name)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+
 
 
 
